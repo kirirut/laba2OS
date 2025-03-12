@@ -1,139 +1,112 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
 #include <sys/wait.h>
+#include <errno.h>
 
-#define ENV_VAR "CHILD_PATH"
+#define ENV_FILE "env"
+#define MAX_ENV_VARS 100
+#define BUFFER_SIZE 1024
 
-char *find_var(char *env[]){
-    char *buf = (char*)calloc(255, sizeof(char));
-    for(int i = 0; env[i] != NULL; i++){
-        if(strlen(ENV_VAR) < strlen(env[i   ])){
-            if(strstr(env[i], ENV_VAR) != NULL) {
-                strcpy(buf, strstr(env[i], ENV_VAR) + strlen(ENV_VAR) + 1);
-                if(buf == NULL){
-                    fprintf(stderr,"Something's wrong with environment\n");
-                    exit(1);
-                }
-                return buf;
-            }
-        }
+int child_counter = 0;
+
+void spawn_child(const char *child_path, char mode, char **child_env) {
+    if (child_counter >= 100) {
+        printf("Maximum child processes (99) reached.\n");
+        return;
     }
-    return NULL;
+
+    pid_t pid = fork();
+    if (pid < 0) {
+        perror("Fork failed");
+        return;
+    } else if (pid == 0) {  // Дочерний процесс
+        char child_exec[BUFFER_SIZE];
+        snprintf(child_exec, sizeof(child_exec), "%s/child", child_path);
+
+        char child_name[16];
+        snprintf(child_name, sizeof(child_name), "child_%02d", child_counter);
+
+        if (mode == '+') {
+            execl(child_exec, child_name, ENV_FILE, NULL);
+        } else if (mode == '*') {
+            execve(child_exec, (char *[]){child_name, NULL}, child_env);
+        }
+
+        perror("execve failed");
+        exit(EXIT_FAILURE);
+    }
+
+    child_counter++;
 }
 
-void print_params_list(char *envp[]){
-    char **param_list = (char**)calloc(0, sizeof(char*));
-    int list_size;
-    for(int i = 0; envp[i] != NULL; i++){
-        param_list = realloc(param_list, (i + 1) * sizeof(char*));
-        param_list[i] = (char*)calloc(strlen(envp[i]) + 1, sizeof(char));
-        strcpy(param_list[i], envp[i]);
-        list_size = i + 1;
+char **load_env_from_file() {
+    FILE *file = fopen(ENV_FILE, "r");
+    if (!file) {
+        perror("Failed to open env file");
+        return NULL;
     }
-    for (int i = 0; i < list_size; i++){
-        int min = i;
-        for(int j = i + 1; j < list_size; j++){
-            if(strcoll(param_list[min], param_list[j]) > 0)
-                min = j;
-            if(min != i){
-                char *buf = (char*)calloc(strlen(param_list[min]) + 1, sizeof(char));
-                strcpy(buf, param_list[min]);
-                param_list[min] = realloc(param_list[min] ,strlen(param_list[i]) + 1);
-                strcpy(param_list[min], param_list[i]);
-                param_list[i] = realloc(param_list[i] ,strlen(buf) + 1);
-                strcpy(param_list[i], buf);
+
+    char **new_env = malloc(MAX_ENV_VARS * sizeof(char *));
+    if (!new_env) {
+        perror("Memory allocation failed");
+        fclose(file);
+        return NULL;
+    }
+
+    char buffer[BUFFER_SIZE];
+    int count = 0;
+
+    while (fgets(buffer, sizeof(buffer), file) && count < MAX_ENV_VARS - 1) {
+        buffer[strcspn(buffer, "\n")] = 0;
+        char *value = getenv(buffer);
+        if (value) {
+            char *entry = malloc(strlen(buffer) + strlen(value) + 2);
+            if (entry) {
+                sprintf(entry, "%s=%s", buffer, value);
+                new_env[count++] = entry;
             }
         }
     }
 
-    for(int i = 0; i < list_size; i++){
-        fprintf(stdout, "%s\n", param_list[i]);
+    new_env[count] = NULL;
+    fclose(file);
+    return new_env;
+}
+
+void handle_keyboard(const char *child_path, char **child_env) {
+    printf("Press + to spawn a child with file env, * to spawn with environment array, q to quit.\n");
+    char ch;
+    while (read(STDIN_FILENO, &ch, 1) > 0) {
+        if (ch == 'q') break;
+        if (ch == '+' || ch == '*') {
+            spawn_child(child_path, ch, child_env);
+        }
     }
 }
 
-int main(int argc,char *argv[], char *envp[]) {
-    int child_number = 0;
-    char child_out[] = "CHILD_#";
-    char counter_buf[20];
-    if(!getenv(ENV_VAR)){
-        fprintf(stderr,"Something's wrong with environment\n");
-        exit(1);
-    }
-    if (argc != 2) {
-        fprintf(stderr, "Wrong number of arguments(must be 2)\n");
-        exit(1);
+int main(int argc, char *argv[], char *envp[]) {
+    char **child_env = load_env_from_file();
+    if (!child_env) return EXIT_FAILURE;
+
+    char *child_path = getenv("CHILD_PATH");
+    if (!child_path) {
+        fprintf(stderr, "CHILD_PATH not set\n");
+        return EXIT_FAILURE;
     }
 
-    print_params_list(envp);
-    while (1) {
-        char except;
-        int child_status;
-        char choice;
-        scanf("%c", &choice);
-        if (scanf("%c", &except) && except != '\n') {
-            fprintf(stderr, "Wrong param input\n");
-            continue;
-        }
-            child_number++;
-            char *child_info = (char *) calloc(255, sizeof(char));
-            switch (choice) {
-                case '+':{
-                    pid_t proc = fork();
-                    if(proc == -1){
-                        fprintf(stderr, "Cannot create new process\n");
-                        exit(1);
-                    }
-                    else if(proc == 0){
-                        child_info = getenv(ENV_VAR);
-                        sprintf(counter_buf, "%d", child_number);
-                        char *args[4] = {strcat(child_out, counter_buf), argv[1], "+", NULL};
-                        execve(child_info, args, envp);
-                    }
-                    wait(&child_status);
-                    fprintf(stdout, "Child ended with %d status\n", child_status);
-                    break;
-                }
-                case '*':{
-                    pid_t proc = fork();
-                    if(proc == -1){
-                        fprintf(stderr, "Cannot create new process\n");
-                        exit(1);
-                    }
-                    else if(proc == 0) {
-                        child_info = find_var(envp);
-                        fprintf( stdout,"%s\n", child_info);
-                        sprintf(counter_buf, "%d", child_number);
-                        char *args[4] = {strcat(child_out, counter_buf), argv[1], "*", NULL};
-                        execve(child_info, args, envp);
-                    }
-                    wait(&child_status);
-                    fprintf(stdout, "Child ended with %d status\n", child_status);
-                    break;
-                }
-                case '&':{
-                    pid_t proc = fork();
-                    if(proc == -1){
-                        fprintf(stderr, "Cannot create new process\n");
-                        exit(1);
-                    }
-                    else if(proc == 0) {
-                        child_info = find_var(__environ);
-                        fprintf( stdout,"%s\n", child_info);
-                        sprintf(counter_buf, "%d", child_number);
-                        char *args[4] = {strcat(child_out, counter_buf), argv[1], "&", NULL};
-                        execve(child_info, args, envp);
-                    }
-                    wait(&child_status);
-                    fprintf(stdout, "Child ended with %d status\n", child_status);
-                    break;
-                }
-                case 'q':{
-                    fprintf(stdout, "Successfully ended \n");
-                    exit(0);
-                }
-            }
+    handle_keyboard(child_path, child_env);
 
-        }
+    while (wait(NULL) > 0);
+    printf("Parent exiting.\n");
+
+    for (int i = 0; child_env[i]; i++) {
+        free(child_env[i]);
     }
+    free(child_env);
+
+    return EXIT_SUCCESS;
+}
