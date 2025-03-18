@@ -1,66 +1,37 @@
-# Parent-Child Process Management
+# Управление процессами Parent-Child
 
-## Description
-This project consists of two programs: `parent` and `child`. The `parent` process manages the environment and spawns `child` processes using `fork()` and `execve()`. The `child` processes retrieve and display environment variables based on the mode of execution.
+## Описание
+Этот проект состоит из двух программ: `parent` и `child`. Процесс `parent` управляет окружением и создает процессы `child` с помощью функций `fork()` и `execve()`. Процессы `child` получают и выводят переменные окружения в зависимости от режима выполнения.
 
-## Features
-- The `parent` process reads environment variables from a file (`env`).
-- It can spawn multiple `child` processes (`child_XX`, where `XX` is a sequential number from 00 to 99).
-- Two modes of execution for `child` processes:
-  - `+` mode: Reads environment variables from the `env` file.
-  - `*` mode: Receives the environment directly from the `parent` process.
-- The `parent` process listens for user input:
-  - `+`: Spawns a new `child_XX` process using the `env` file.
-  - `*`: Spawns a new `child_XX` process with the inherited environment.
-  - `q`: Terminates the `parent` process after all `child` processes finish.
+## Особенности
+- Процесс `parent` читает переменные окружения из файла `env`.
+- Может создавать несколько процессов `child` (`child_XX`, где `XX` — это порядковый номер от 00 до 99).
+- Два режима выполнения для процессов `child`:
+  - Режим `+`: Читает переменные окружения из файла `env`.
+  - Режим `*`: Получает окружение напрямую от процесса `parent`.
+- Процесс `parent` ожидает ввода от пользователя:
+  - `+`: Создает новый процесс `child_XX`, используя файл `env`.
+  - `*`: Создает новый процесс `child_XX` с унаследованным окружением.
+  - `q`: Завершает процесс `parent` после завершения всех процессов `child`.
 
-## Files
-- `parent.c`: Implements the `parent` process.
-- `child.c`: Implements the `child` process.
-- `env`: A text file listing environment variables to be used.
+## Файлы
+- `parent.c`: Реализация процесса `parent`.
+- `child.c`: Реализация процесса `child`.
+- `env`: Текстовый файл со списком переменных окружения.
+## Установка и компиляция
 
-## Installation & Compilation
-```sh
-gcc -o parent parent.c
-gcc -o child child.c
-export CHILD_PATH=$(pwd)
-```
+### Сборка с использованием CMake и Make
+1. Создайте папку `build` (если она еще не создана) и перейдите в нее:
 
-## Installation & Compilation with script
-```sh
-./run.sh
-```
+2. Запустите `cmake` для настройки проекта:
 
-## Running the Program
-```sh
-./parent
-```
+3. Соберите проект с помощью `make`:
 
-### User Commands
-- Press `+` to spawn a `child_XX` using the `env` file.
-- Press `*` to spawn a `child_XX` with inherited environment variables.
-- Press `q` to quit the `parent` process after all child processes exit.
+4. Установите путь к файлу `env` (если он находится в корне проекта):
 
-## Example `env` File
-```sh
-SHELL
-HOME
-HOSTNAME
-LOGNAME
-LANG
-TERM
-USER
-LC_COLLATE
-PATH
-```
+## Примечания
+- Убедитесь, что файл `env` существует и содержит корректные имена переменных окружения.
+- Переменная окружения `CHILD_PATH` должна указывать на директорию, содержащую исполняемый файл `child`.
+- Используйте скрипт `clean.sh` для удаления директории `build` и скомпилированных файлов, если это необходимо.
 
-## Expected Output
-When a `child` process starts, it prints:
-```
-Child process: child_00 (PID: 12345, PPID: 6789)
-SHELL=/bin/bash
-HOME=/home/user
-...
-```
-
-
+---
