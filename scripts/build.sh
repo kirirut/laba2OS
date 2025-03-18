@@ -1,13 +1,16 @@
 #!/bin/bash
 
+# Путь к папке build (на уровень выше, чем scripts)
+BUILD_DIR="../build"
+
 # Проверка и создание папки build, если она отсутствует
-if [ ! -d "build" ]; then
+if [ ! -d "$BUILD_DIR" ]; then
     echo "Папка build не найдена. Создание папки build..."
-    mkdir build || { echo "Не удалось создать папку build"; exit 1; }
+    mkdir -p "$BUILD_DIR" || { echo "Не удалось создать папку build"; exit 1; }
 fi
 
 # Переход в папку build
-cd build || { echo "Не удалось перейти в папку build"; exit 1; }
+cd "$BUILD_DIR" || { echo "Не удалось перейти в папку build"; exit 1; }
 
 # Сборка проекта
 echo "Сборка проекта..."
