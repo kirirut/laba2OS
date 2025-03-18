@@ -26,6 +26,11 @@ gcc -o child child.c
 export CHILD_PATH=$(pwd)
 ```
 
+## Installation & Compilation with script
+```sh
+./run.sh
+```
+
 ## Running the Program
 ```sh
 ./parent

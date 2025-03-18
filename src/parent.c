@@ -7,7 +7,7 @@
 #include <sys/wait.h>
 #include <errno.h>
 
-#define ENV_FILE "env"
+#define ENV_FILE "../src/env"
 #define MAX_ENV_VARS 100
 #define BUFFER_SIZE 1024
 
@@ -23,7 +23,7 @@ void spawn_child(const char *child_path, char mode, char **child_env) {
     if (pid < 0) {
         perror("Fork failed");
         return;
-    } else if (pid == 0) {  // Дочерний процесс
+    } else if (pid == 0) {  
         char child_exec[BUFFER_SIZE];
         snprintf(child_exec, sizeof(child_exec), "%s/child", child_path);
 
