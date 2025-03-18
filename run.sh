@@ -1,18 +1,19 @@
 #!/bin/bash
 
-# Проверка и создание папки build, если она отсутствует
+# Проверка, что папка build существует
 if [ ! -d "build" ]; then
-    echo "Папка build не найдена. Создание папки build..."
-    mkdir build || { echo "Не удалось создать папку build"; exit 1; }
+    echo "Ошибка: папка build не найдена. Сначала выполните сборку проекта (./build.sh)."
+    exit 1
+fi
+
+# Проверка, что программа parent существует
+if [ ! -f "build/parent" ]; then
+    echo "Ошибка: программа parent не найдена в папке build. Сначала выполните сборку проекта (./build.sh)."
+    exit 1
 fi
 
 # Переход в папку build
 cd build || { echo "Не удалось перейти в папку build"; exit 1; }
-
-# Сборка проекта
-echo "Сборка проекта..."
-cmake .. || { echo "Ошибка при выполнении cmake"; exit 1; }
-make || { echo "Ошибка при выполнении make"; exit 1; }
 
 # Установка переменной окружения CHILD_PATH
 export CHILD_PATH=./
