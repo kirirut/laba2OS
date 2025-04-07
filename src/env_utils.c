@@ -1,12 +1,14 @@
 
 #include "env_utils.h"
 
+// Выводит все переменные окружения, переданные через параметр envp[]
 void print_env_from_envp(char* envp[]) {
     for (char** env = envp; *env; env++) {
         printf("%s\n", *env);
     }
 }
-
+// Открывает файл с именами переменных окружения,
+// читает их по строкам, и выводит переменные в формате key=value
 void print_env_from_file(const char* filename) {
     FILE* file = fopen(filename, "r");
     if (!file) {
@@ -28,7 +30,10 @@ void print_env_from_file(const char* filename) {
 
 
 int child_counter = 0;
-
+// Создаёт дочерний процесс и запускает исполняемый файл "child"
+// child_path — путь к директории, где находится исполняемый файл
+// mode — режим запуска: '+', '*', или '&'
+// child_env — окружение, передаваемое через execve
 void spawn_child(const char *child_path, char mode, char **child_env) {
     if (child_counter >= 100) {
         printf("Maximum child processes (99) reached.\n");
@@ -62,6 +67,9 @@ void spawn_child(const char *child_path, char mode, char **child_env) {
     child_counter++;
 }
 
+// Загружает переменные окружения из файла ENV_FILE
+// Читает имена переменных из файла, получает их значения через getenv,
+// создаёт строки в формате key=value и возвращает массив этих строк
 char **load_env_from_file() {
     FILE *file = fopen(ENV_FILE, "r");
     if (!file) {
@@ -114,4 +122,7 @@ void handle_keyboard(const char *child_path, char **child_env) {
             spawn_child(child_path, ch, child_env);
         }
     }
+}
+int env_cmp(const void *a, const void *b) {
+    return strcoll(*(const char **)a, *(const char **)b);
 }
