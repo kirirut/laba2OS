@@ -3,8 +3,6 @@
 #include <unistd.h>
 #include "env_utils.h"  
 
-extern char** environ;
-
 int main(int argc, char* argv[], char* envp[]) {
     printf("Child process: %s (PID: %d, PPID: %d)\n", argv[0], getpid(), getppid());
 

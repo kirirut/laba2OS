@@ -56,7 +56,6 @@ void spawn_child(const char *child_path, char mode, char **child_env) {
         } else if (mode == '*') {
             execve(child_exec, (char *[]){child_name, NULL}, child_env);
         } else if (mode == '&') {
-            // В случае &, передаем переменные окружения из файла env
             execve(child_exec, (char *[]){child_name, NULL}, child_env);
         }
 
