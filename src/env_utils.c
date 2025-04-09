@@ -56,7 +56,26 @@ void spawn_child(const char *child_path, char mode, char **child_env) {
         } else if (mode == '*') {
             execve(child_exec, (char *[]){child_name, NULL}, child_env);
         } else if (mode == '&') {
-            execve(child_exec, (char *[]){child_name, NULL}, child_env);
+            const char *names[] = {
+                "SHELL", "HOME", "HOSTNAME", "LOGNAME", "LANG",
+                "TERM", "USER", "LC_COLLATE", "PATH"
+            };
+
+            static char buffer[10][256];
+            static char *custom_environ[11]; 
+            int env_count = 0;
+
+            for (int i = 0; i < 10; ++i) {
+                const char *val = getenv(names[i]);
+                if (val) {
+                    snprintf(buffer[env_count], sizeof(buffer[env_count]), "%s=%s", names[i], val);
+                    custom_environ[env_count] = buffer[env_count];
+                    env_count++;
+                } 
+            }
+            custom_environ[env_count] = NULL;
+
+            execve(child_exec, (char *[]){child_name, NULL}, custom_environ);
         }
 
         perror("execve failed");
@@ -65,6 +84,8 @@ void spawn_child(const char *child_path, char mode, char **child_env) {
 
     child_counter++;
 }
+
+
 
 // Загружает переменные окружения из файла ENV_FILE
 // Читает имена переменных из файла, получает их значения через getenv,
