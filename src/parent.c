@@ -25,10 +25,10 @@ int main(int argc, char *argv[], char *envp[]) {
     }
     env_copy[count] = NULL;
 
-    // Сортировка
+    
     qsort(env_copy, count, sizeof(char *), env_cmp);
 
-    // Вывод
+    
     printf("=== Parent environment ===\n");
     for (int i = 0; i < count; i++) {
         printf("%s\n", env_copy[i]);
@@ -53,6 +53,6 @@ int main(int argc, char *argv[], char *envp[]) {
     while (wait(NULL) > 0);
     printf("Parent exiting.\n");
 
-    free_env(child_env);  // Free memory for child_env
+    free_env(child_env);  
     return EXIT_SUCCESS;
 }
